@@ -6,7 +6,7 @@ library(modelr)
 library(yardstick)
 load('data/biomarker-clean.RData')
 
-## MULTIPLE TESTING
+## MULTIPLE TESTING 
 ####################
 
 # function to compute tests
@@ -101,3 +101,5 @@ testing(biomarker_split) %>%
   class_metrics(estimate = factor(pred > 0.5),
               truth = factor(class), pred,
               event_level = 'second')
+
+
