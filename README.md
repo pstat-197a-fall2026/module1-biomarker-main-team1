@@ -56,4 +56,4 @@ Your group's task is to explore the sensitivity of the results to certain design
 4.  Prepare a write-up using the template `results/report.qmd` .
 5.  To submit, commit all changes to the main branch of your group repository by the assignment deadline.
 
-*Remark*: ensure your contributions are recorded in the commit history.
+*Remark*: ensure your contributions are recorded in the commit history. 
