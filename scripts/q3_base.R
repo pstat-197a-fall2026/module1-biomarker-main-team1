@@ -124,7 +124,8 @@ class_metrics(
   event_level = "second"
 )
 
-# results
+# results from base
+
 ## # A tibble: 4 × 3
 ##   .metric     .estimator .estimate
 ##   <chr>       <chr>          <dbl>
