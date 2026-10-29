@@ -4,7 +4,7 @@ library(randomForest)
 library(tidymodels)
 library(modelr)
 library(yardstick)
-load('../data/biomarker-clean.RData')
+load('../../data/biomarker-clean.RData')
 
 
 # Modification 2: choose a larger number (more than ten) of top predictive proteins using each selection method

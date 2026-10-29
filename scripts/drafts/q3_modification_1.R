@@ -4,7 +4,7 @@ library(randomForest)
 library(tidymodels)
 library(modelr)
 library(yardstick)
-load('../data/biomarker-clean.RData')
+load('../../data/biomarker-clean.RData')
 
 # Modification 1: Training/Testing Split from the beginning
 
