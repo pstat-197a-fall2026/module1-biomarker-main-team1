@@ -1,0 +1,20 @@
+### Question 4: alternative and simpler protein panels
+
+Motivated by Q3, we split participants before preprocessing and feature selection, compared both hard and fuzzy rankings, and investigated lasso logistic regression. We compared 24 fixed configurations using three repeats of stratified five-fold cross-validation within the 123 training participants. Scaling and selection were repeated within each fold. A primary approach maximized mean validation accuracy; a second approach favored a one- to three-protein panel within two percentage points of the best small-panel validation score. All classifiers used a fixed 0.5 threshold.
+
+Cross-validation selected lasso_all_0.1 as the primary approach (mean accuracy 72.9%) and ttest1 as the simpler approach (mean accuracy 66.1%). The final primary panel contained 49 proteins; the simpler panel contained DERM. The original class procedure was independently reproduced within Sou's new script; no teammate scripts were edited or required as inputs.
+
+| Approach | Proteins | Sensitivity | Specificity | Accuracy | AUROC |
+| --- | --- | --- | --- | --- | --- |
+| In-class rerun (full-data selection) | 5 | 81.2% | 73.3% | 77.4% | 0.883 |
+| In-class historical comments (not reproduced) | Not recorded | 87.5% | 80.0% | 83.9% | 0.908 |
+| hard10 | 4 | 75.0% | 73.3% | 74.2% | 0.838 |
+| lasso_all_0.1 | 49 | 62.5% | 93.3% | 77.4% | 0.913 |
+| ttest1 | 1 | 50.0% | 93.3% | 71.0% | 0.792 |
+
+The simpler panel does not meet the descriptive two-percentage-point accuracy criterion against the rerun class baseline on this partition. It should not be presented as a demonstrated equivalent replacement. The primary alternative matches the rerun class baseline's observed accuracy; it does not improve it.
+
+The primary alternative's sensitivity was 62.5%, compared with 81.2% for the rerun class baseline; therefore overall accuracy and ASD identification must be interpreted separately. The historical baseline comments report 83.9% accuracy, but the same procedure in the current environment produced 77.4%; the cause of this discrepancy remains unresolved.
+
+The 31 test participants were examined in earlier work, so the final comparison is exploratory. One child changes test accuracy by about 3.2 percentage points. CV scores were used for selection and may be optimistic. Comparable observed accuracy is not proof of equivalence, and these results do not establish a clinical biomarker panel. Full protein lists, coefficients, confusion counts and reproducible code accompany this section.
+
