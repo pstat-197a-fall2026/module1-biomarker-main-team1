@@ -31,7 +31,35 @@ Write a brief data description, including: how data were obtained; sample charac
 
 ## Summary of published analysis
 
-Summarize the methodology of the paper in 1-3 paragraphs. You need not explain the methods in depth as we did in class; just indicate what methods were used and how they were combined. If possible, include a diagram that depicts the methodological design. (Quarto has support for [GraphViz and Mermaid flowcharts](https://quarto.org/docs/authoring/diagrams.html).) Provide key results: the proteins selected for the classifier and the estimated accuracy.
+Hewitson et al. (2021) investigated whether blood protein levels could be used to distinguish children with autism spectrum disorder (ASD) from typically developing (TD) children. The goal was to create a panel of proteins that could be useful as blood biomarkers for detection of ASD. The study collected serum samples from 154 boys, 76 with ASD and 78 TD, all within 18 months to 8 years of age. With SOMAScan proteomic assay, researchers measured 1,317 proteins, of which 1,125 passed quality control. After data collection, the protein measurements were log-transformed and standardized before analysis.
+
+Three feature selection methods were applied: random forest, t-tests, and correlation analysis. From these three methods, the researchers selected the top 10 proteins from each, and identified five proteins that were common to all three methods. The five proteins formed the base of the biomarker panel. Additional proteins were evaluated to be added to the panel based on their ability to improve the classifier's performance, resulting in a bigger panel of 9 proteins. The nine selected proteins were IgD, suPAR, MAPK14, EPHB2, DERM, ROR1, GI24, eIF-4H, and ARSB. Then, a logistic regression classifier was trained using 80% of the observations, with the remaining 20% forming the test set. The researchers evaluated the trained model using the area under the ROC curve (AUC) calculated on the test set. This procedure was repeated 1,000 times to reduce the effect of random variable from the training-testing split. The final nine protein logistic regression classifier model achieved a reported AUC of 0.8599, 83% sensitivity, and 84% specificity, but the study was later retracted due to issues in the statistical analysis.
+
+```{mermaid}
+flowchart TD
+    A["154 serum samples<br/>76 ASD / 78 TD"]
+    B["SOMAScan assay<br/>(1,317 proteins)"]
+    C["Quality control and normalization<br/>(1,125 proteins retained)"]
+    D["Random forest<br/>(Top 10)"]
+    E["T-tests<br/>(Top 10)"]
+    F["Correlation with ADOS<br/>(Top 10)"]
+    G["Core panel: 5 proteins"]
+    H["Evaluate additional proteins"]
+    I["Final panel: 9 proteins"]
+    J["Logistic regression classifier"]
+    K["80% training / 20% testing<br/>1,000 repetitions"]
+    L["Reported metrics:<br/>AUC ≈ 0.86<br/>Sensitivity ≈ 83%<br/>Specificity ≈ 84%"]
+
+    A --> B --> C
+    C --> D
+    C --> E
+    C --> F
+    D --> G
+    E --> G
+    F --> G
+    G --> H --> I --> J --> K --> L
+
+```
 
 ## Findings
 
