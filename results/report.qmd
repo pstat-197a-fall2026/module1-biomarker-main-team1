@@ -23,11 +23,13 @@ library(tidyverse)
 
 ## Abstract
 
-Write a brief one-paragraph abstract that describes the contents of your write-up.
+This report builds on an in-class reproduction of Hewitson et al.'s (2021) serum protein biomarker panel for ASD to assess how sensitive the results are to specific methodological choices. We examine why the protein levels were log-transformed, check whether outliers are concentrated in particular subjects or in one diagnostic group, and modify the selection procedure in three ways, holding out test data before any selection, choosing more than ten top proteins per method, and using a fuzzy rather than hard intersection across methods, to compare to the in-class analysis. We then search for a simpler or alternative panel that achieves improved classification accuracy.
 
 ## Dataset
 
-Write a brief data description, including: how data were obtained; sample characteristics; variables measured; and data preprocessing. This can be largely based on the source paper and should not exceed 1-2 paragraphs.
+The data comes from Hewitson et al. (2021), a serum proteomic study of autism spectrum disorder (ASD). Fasting blood was drawn from 154 boys aged 18 months to 8 years: 76 with ASD and 78 typically developing (TD) controls. The mean age was about 5.6 years in the ASD group and 5.7 in the TD group. ASD diagnosis was based on DSM-5 criteria using the ADOS and ADI-R. TD boys were screened for developmental concerns with the ABAS-II, and boys with a family history of ASD were excluded. The raw data file has 154 rows (one per subject) and 1,317 protein columns. Each protein column has a full name and an abbreviation. The file also has a Group label (ASD or TD) and the ADOS total score (Social Affect + Restricted and Repetitive Behaviors). ADOS is recorded only for ASD subjects and is missing (“-”) for TD subjects.
+
+For preprocessing, we read the protein names and abbreviations from the two header rows and recodes “-” and blank cells as missing. Empty rows were dropped, and a log10 transform was applied to each protein. Each protein is then z-scored across subjects, and values beyond ±3 are clipped to ±3 to limit outliers, and the cleaned data is saved as 'biomarker-clean.RData.'
 
 ## Summary of published analysis
 
