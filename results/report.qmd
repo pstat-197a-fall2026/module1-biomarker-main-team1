@@ -83,4 +83,20 @@ For modification 2, the number of proteins selected from both feature selection 
 
 ### Improved classifier
 
-Task 4
+For Question 4, we searched for an alternative panel with improved accuracy and also investigated whether a smaller panel could retain comparable accuracy. To align the benchmark with Question 3, we used the same supplied cleaned data, random-forest ASD/TD labels, random seed (101422), 80/20 training/test split, and classification threshold of 0.5. The in-class benchmark selected the intersection of the top ten proteins from t-tests and random forest using the full dataset, then fitted logistic regression on the training partition. Rerunning this benchmark alongside Question 3 gave identical baseline metrics in both parts.
+
+We compared 24 candidate configurations using three repeats of stratified five-fold cross-validation within the 123 training subjects. Candidates included logistic regression with hard-intersection, fuzzy-ranking, t-test, or random-forest panels, and lasso logistic regression using either all proteins or the top 25 fuzzy-ranked proteins. Lasso penalizes large coefficients and can set some coefficients to zero, allowing protein selection during fitting. Protein selection was repeated within each training fold. We chose the alternative with the highest mean validation accuracy; for the simpler option, we chose the smallest one- to three-protein panel within two percentage points of the best validation accuracy among those small panels. These choices were fixed before the final evaluation in this run.
+
+Cross-validation selected the all-protein lasso configuration with a penalty equal to 0.2 times the largest penalty in its fitted path (`lasso_all_0.2`), with mean validation accuracy of 74.0%. The simpler configuration used the top fuzzy-ranked protein (`fuzzy1`), with mean validation accuracy of 67.5%. Refitting on all training subjects produced a 38-protein lasso panel and a one-protein logistic regression panel containing DERM. The rerun class panel contained DERM, RELT, MRC2, IgD, and Cadherin-5.
+
+The following results use the same 31 test subjects (16 ASD and 15 TD). Sensitivity is the proportion of ASD subjects correctly classified, and specificity is the proportion of TD subjects correctly classified.
+
+| Approach | Number of proteins | Sensitivity | Specificity | Accuracy | AUROC |
+|:--|--:|--:|--:|--:|--:|
+| In-class baseline (rerun) | 5 | 81.2% | 73.3% | 77.4% | 0.883 |
+| Alternative: lasso | 38 | 50.0% | 93.3% | 71.0% | 0.925 |
+| Simpler: DERM only | 1 | 50.0% | 93.3% | 71.0% | 0.792 |
+
+Neither Question 4 panel improved classification accuracy: both correctly classified 22 of 31 subjects, compared with 24 of 31 for the baseline. Both detected only 8 of 16 ASD subjects, compared with 13 of 16 for the baseline, while correctly classifying 14 of 15 TD subjects instead of 11. The alternative's higher AUROC indicates better ranking of ASD versus TD subjects by predicted probability, but does not imply higher accuracy at the fixed threshold. The simpler panel reduced the number of proteins from five to one, but its accuracy was 6.5 percentage points lower, outside our descriptive two-percentage-point comparability margin. Thus, this search did not demonstrate either requested improvement on this test split; the lasso panel was the validation-selected alternative, rather than a model that surpassed the class benchmark.
+
+These comparisons are exploratory. The cleaned data were log-transformed, standardized, and clipped using all subjects, and the class benchmark retained full-data feature selection. Although Question 4 selected and tuned proteins within training folds, reusing globally preprocessed data leaves information leakage. The test set had also been examined in earlier work, so it is not a fresh independent validation set. With only 31 test subjects, one changed classification shifts accuracy by about 3.2 percentage points, and the comparability margin is not evidence of statistical equivalence. The analysis can be reproduced through `scripts/analysis-main.R`; selected protein lists and coefficients are regenerated under `results/sou-q4-final/`.
