@@ -14,7 +14,6 @@ execute:
   cache: true
 ---
 
-
 ## Abstract
 
 This report builds on an in-class reproduction of Hewitson et al.'s (2021) serum protein biomarker panel for ASD to assess how sensitive the results are to specific methodological choices. We examine why the protein levels were log-transformed, check whether outliers are concentrated in particular subjects or in one diagnostic group, and modify the selection procedure in three ways, holding out test data before any selection, choosing more than ten top proteins per method, and using a fuzzy rather than hard intersection across methods, to compare to the in-class analysis. We then search for a simpler or alternative panel that achieves improved classification accuracy. A cross-validation-selected 38-protein lasso model and a one-protein (DERM) model, found in the panel search, each correctly classified 22 of 31 held-out subjects, compared with 24 of 31 for the five-protein in-class baseline. Neither panel matched or improved on baseline accuracy, but the lasso model achieved a higher AUROC (0.925 vs. 0.883).
@@ -86,7 +85,7 @@ Cross-validation selected the all-protein lasso configuration with a penalty equ
 The following results use the same 31 test subjects (16 ASD and 15 TD). Sensitivity is the proportion of ASD subjects correctly classified, and specificity is the proportion of TD subjects correctly classified.
 
 | Approach | Number of proteins | Sensitivity | Specificity | Accuracy | AUROC |
-|:-----------|-----------:|-----------:|-----------:|-----------:|-----------:|
+|:---|---:|---:|---:|---:|---:|
 | In-class baseline (rerun) | 5 | 81.2% | 73.3% | 77.4% | 0.883 |
 | Alternative: lasso | 38 | 50.0% | 93.3% | 71.0% | 0.925 |
 | Simpler: DERM only | 1 | 50.0% | 93.3% | 71.0% | 0.792 |
@@ -96,4 +95,5 @@ Neither Question 4 panel improved classification accuracy: both correctly classi
 These comparisons are exploratory. The cleaned data were log-transformed, standardized, and clipped using all subjects, and the class benchmark retained full-data feature selection. Although Question 4 selected and tuned proteins within training folds, reusing globally preprocessed data leaves information leakage. The test set had also been examined in earlier work, so it is not a fresh independent validation set. With only 31 test subjects, one changed classification shifts accuracy by about 3.2 percentage points, and the comparability margin is not evidence of statistical equivalence. The analysis can be reproduced through `scripts/analysis-main.R`; selected protein lists and coefficients are regenerated under `results/sou-q4-final/`.
 
 ### References
+
 Hewitson, Laura, Jeremy A Mathews, Morgan Devlin, Claire Schutte, Jeon Lee, and Dwight C German. 2021. “Blood Biomarker Discovery for Autism Spectrum Disorder: A Proteomic Analysis.” PLoS One 16 (2): e0246581.

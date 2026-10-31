@@ -97,8 +97,8 @@ subject_outliers |>
   kable()
 ```
 
-Aggregating by groups, it appears that there's actually more eveidence that there's less outliers in the ASD group. This goes against intuition as we would not expect outlier values to be associated with identifying typically developing children. This might be due to small sample size or the nature of outlier values skewing the ASD group's mean count of outliers, while the median is the same. The percentage of subjects with outlier values is the same and the percentage of measurements with outlier values is not significantly different. We can visualize the lack of relation with the plot below:
+Aggregating by groups, it appears that there's actually more evidence that there's less outliers in the ASD group. This goes against intuition as we would not expect outlier values to be associated with identifying typically developing children. This might be due to small sample size or the nature of outlier values skewing the ASD group's mean count of outliers, while the median is the same. The percentage of subjects with outlier values is the same and the percentage of measurements with outlier values is not significantly different. We can visualize the lack of relation with the plot below:
 
-![](sorted_outliers.png)
+![](outliers_count.png)
 
 Each bar is a subject and the x-axis is the number of outlying protein measurements for that subject, sorted by most to least outliers. There does not seem to be a clean way to divide the ASD and TD group purely by how many outlier values they have.

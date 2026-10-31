@@ -121,7 +121,8 @@ ggplot(
     fill = "Group",
     title = "Outlying protein measurements per subject"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(axis.text.y = element_blank())
 
 # As we can see, subject 154 has by far the most outlier protein measurements.
 # Subjects 108, 9, 121, 52, and 77 have over 100 protein measurements with
