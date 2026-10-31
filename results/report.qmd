@@ -14,10 +14,6 @@ execute:
   cache: true
 ---
 
-```{r}
-# load any other packages and read data here
-library(tidyverse)
-```
 
 ## Abstract
 
@@ -65,7 +61,7 @@ flowchart TD
 
 ### Impact of preprocessing and outliers
 
-Tasks 1-2
+{{< include arden_q1_q2.qmd >}}
 
 ### Methodological variations
 
@@ -98,3 +94,6 @@ The following results use the same 31 test subjects (16 ASD and 15 TD). Sensitiv
 Neither Question 4 panel improved classification accuracy: both correctly classified 22 of 31 subjects, compared with 24 of 31 for the baseline. Both detected only 8 of 16 ASD subjects, compared with 13 of 16 for the baseline, while correctly classifying 14 of 15 TD subjects instead of 11. The alternative's higher AUROC indicates better ranking of ASD versus TD subjects by predicted probability, but does not imply higher accuracy at the fixed threshold. The simpler panel reduced the number of proteins from five to one, but its accuracy was 6.5 percentage points lower, outside our descriptive two-percentage-point comparability margin. Thus, this search did not demonstrate either requested improvement on this test split; the lasso panel was the validation-selected alternative, rather than a model that surpassed the class benchmark.
 
 These comparisons are exploratory. The cleaned data were log-transformed, standardized, and clipped using all subjects, and the class benchmark retained full-data feature selection. Although Question 4 selected and tuned proteins within training folds, reusing globally preprocessed data leaves information leakage. The test set had also been examined in earlier work, so it is not a fresh independent validation set. With only 31 test subjects, one changed classification shifts accuracy by about 3.2 percentage points, and the comparability margin is not evidence of statistical equivalence. The analysis can be reproduced through `scripts/analysis-main.R`; selected protein lists and coefficients are regenerated under `results/sou-q4-final/`.
+
+### References
+Hewitson, Laura, Jeremy A Mathews, Morgan Devlin, Claire Schutte, Jeon Lee, and Dwight C German. 2021. “Blood Biomarker Discovery for Autism Spectrum Disorder: A Proteomic Analysis.” PLoS One 16 (2): e0246581.

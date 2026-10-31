@@ -1,9 +1,8 @@
 ---
-title: "arden_q1_q2"
 format: html
 ---
 
-### Impact of preprocessing and outliers
+
 
 From the 10 proteins we sampled, it seems that many of the proteins in the sample are heavily right-skewed. This implies that most of the participants in the study have protein counts for these proteins in the very low end of the study's range of protein counts.
 
