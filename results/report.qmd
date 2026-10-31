@@ -1,7 +1,7 @@
 ---
 title: "Biomarkers of ASD"
-subtitle: "If you want a subtitle put it here"
-author: "List names here"
+subtitle: ""
+author: "Jiatian Li, Sophia Leng, Arden Chen, Sou Hamura"
 date: last-modified
 published-title: "Updated"
 editor: visual
@@ -33,7 +33,7 @@ For preprocessing, we read the protein names and abbreviations from the two head
 
 ## Summary of published analysis
 
-Hewitson et al. (2021) investigated whether blood protein levels could be used to distinguish children with autism spectrum disorder (ASD) from typically developing (TD) children. The goal was to create a panel of proteins that could be useful as blood biomarkers for detection of ASD. The study collected serum samples from 154 boys, 76 with ASD and 78 TD, all within 18 months to 8 years of age. With SOMAScan proteomic assay, researchers measured 1,317 proteins, of which 1,125 passed quality control. After data collection, the protein measurements were log-transformed and standardized before analysis.
+The original paper, Hewitson et al. (2021), investigated whether blood protein levels could be used to distinguish children with autism spectrum disorder (ASD) from typically developing (TD) children. The goal was to create a panel of proteins that could be useful as blood biomarkers for detection of ASD. The study collected serum samples from 154 boys, 76 with ASD and 78 TD, all within 18 months to 8 years of age. With SOMAScan proteomic assay, researchers measured 1,317 proteins, of which 1,125 passed quality control. After data collection, the protein measurements were log-transformed and standardized before analysis.
 
 Three feature selection methods were applied: random forest, t-tests, and correlation analysis. From these three methods, the researchers selected the top 10 proteins from each, and identified five proteins that were common to all three methods. The five proteins formed the base of the biomarker panel. Additional proteins were evaluated to be added to the panel based on their ability to improve the classifier's performance, resulting in a bigger panel of 9 proteins. The nine selected proteins were IgD, suPAR, MAPK14, EPHB2, DERM, ROR1, GI24, eIF-4H, and ARSB. Then, a logistic regression classifier was trained using 80% of the observations, with the remaining 20% forming the test set. The researchers evaluated the trained model using the area under the ROC curve (AUC) calculated on the test set. This procedure was repeated 1,000 times to reduce the effect of random variable from the training-testing split. The final nine protein logistic regression classifier model achieved a reported AUC of 0.8599, 83% sensitivity, and 84% specificity, but the study was later retracted due to issues in the statistical analysis.
 
@@ -73,7 +73,13 @@ Tasks 1-2
 
 ### Methodological variations
 
-Task 3
+In part three, we tested the base analysis alongside various modifications and then compared the models' performances. Here is a table that summarizes the evaluation metrics.
+
+![](q3_modification_summary.png)
+
+For modification 1, the training-testing split was done at the very start, before the feature selection, whereas in the original it was done at the start of the logistic regression. The sensitivity, accuracy, and roc_auc from the first modification are all lower than the original metrics. However, this does not mean that our model performance worsened after the modification. Instead, the initial analysis likely had data leakage, leading it to overestimate the model performance. By doing the training/testing split before any of the analysis, we do the feature extraction steps with only the training data, making the metrics after modification a better representation of our actual model performance.
+
+For modification 2, the number of proteins selected from both feature selection methods was changed from 10 to 25. From the results, the classification performance showed mixed changes for this modification. Sensitivity decreased, accuracy remained the same, and specificity and roc_auc increased. This suggests that the modified model is a bit less sensitive to ASD but a bit more specific to TD. The roc_auc increase may mean that the model got better at distinguishing between ASD and TD individuals from predicted probabilities, while the classification accuracy is the same. Overall it seems increasing the number of selected proteins could slightly improve some aspects of the model performance.
 
 ### Improved classifier
 
