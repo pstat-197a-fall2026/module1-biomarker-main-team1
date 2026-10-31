@@ -1,28 +1,20 @@
-# Question 4 -- Sou
-# Question: can a smaller or alternative protein panel classify ASD/TD well?
+# Question 4 -- Sou: aligned with the team's in-class baseline
+# Run from the project root: source("scripts/sou_q.4.R") or click Source.
+# No teammate scripts need to run first; this reads the SAME clean data file.
+# Keep scripts/sou_q4_writeup.R alongside this file (our report helper).
 #
-# Q3a motivates training-only selection AND preprocessing.
-# Q3b motivates testing a larger candidate pool, without assuming it helps.
-# Q3c motivates fuzzy ranking instead of insisting on a top-10 intersection.
-# New method: lasso logistic regression shrinks some coefficients to exactly
-# zero, simultaneously selecting proteins and fitting the classifier.
+# Alignment: same biomarker-clean.RData, ASD/TD forest labels, seed 101422,
+# 80/20 split, logistic outcome ASD=TRUE, and fixed probability threshold >0.5.
+# There is ONE final class benchmark, reproduced here with full-data selection.
+# Q4 methods select/tune on training data. They reuse the team's global
+# preprocessing for direct alignment; that retains preprocessing leakage.
+# The test set was viewed before these corrections: all test results remain
+# exploratory. Corrections fix alignment; they are not a fresh validation study.
 #
-# FIRST RUN IN RSTUDIO:
-# 1. Open module1-biomarker.Rproj.
-# 2. Run this in the Console: source("scripts/sou_q.4.R")
-#    Alternatively, open this file and click Source (not Run on a single line).
-# 3. Wait for cross-validation to finish, then inspect cv_summary/final_results.
-#
-# To work section by section, run the libraries and sections 1 through 9 IN ORDER.
-# Later sections depend on earlier ones. In particular, cv_results is created
-# by the entire loop in section 5; do not jump straight to cv_by_repeat.
-# Other Q1-Q3 scripts do not need to be run first.
-# Loading saved results lets you inspect tables, but does not load the libraries
-# or define this script's helper functions. Run from the top to edit/recompute.
-# The old starter in scripts/drafts/ is historical only; do not run it first.
-# Current outputs go to results/sou-q4-final/; older outputs are not overwritten.
-# IMPORTANT: this test set was viewed during the starter analysis. Subsequent
-# test results are exploratory, even though choices below use training CV only.
+# The 24 configurations and selection rules are unchanged. We do not expand
+# the search or change the seed to chase a historical accuracy or a better score.
+# Wait for all 15 validation folds, then inspect cv_summary, final_results,
+# sou_panel, simple_panel and inclass_panel. The report is regenerated too.
 
 library(tidyverse)
 library(randomForest)
@@ -30,9 +22,9 @@ library(rsample)
 library(yardstick)
 library(glmnet)
 
-## 1. Settings and raw data -------------------------------------------------
+## 1. Settings and the team's supplied clean data -------------------------------------------------
 
-project_root <- if (file.exists("data/biomarker-raw.csv")) "." else ".."
+project_root <- if (file.exists("data/biomarker-clean.RData")) "." else ".."
 output_dir <- file.path(project_root, "results", "sou-q4-final")
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -58,57 +50,37 @@ configurations <- bind_rows(
            method = "lasso", k = NA_integer_)
 )
 
-raw_path <- file.path(project_root, "data", "biomarker-raw.csv")
-headers <- read_csv(raw_path, col_names = FALSE, n_max = 2,
-                    col_select = -(1:2), show_col_types = FALSE)
-var_names <- tibble(
-  name = as.character(unlist(headers[1, ], use.names = FALSE)),
-  abbreviation = as.character(unlist(headers[2, ], use.names = FALSE))
-) %>% drop_na()
+clean_path <- file.path(project_root, "data", "biomarker-clean.RData")
+input <- new.env(parent = emptyenv())
+load(clean_path, envir = input)
+analysis_data <- input$biomarker_clean %>%
+  select(-ados) %>% mutate(subject_id = row_number(), .before = group)
+protein_names <- setdiff(names(analysis_data), c("subject_id", "group"))
+stopifnot(nrow(analysis_data) == 154L, length(protein_names) == 1317L,
+          !anyNA(analysis_data[, protein_names]),
+          all(as.matrix(analysis_data[, protein_names]) >= -3),
+          all(as.matrix(analysis_data[, protein_names]) <= 3))
 
-raw_data <- read_csv(
-  raw_path, skip = 2, col_select = -2L,
-  col_names = c("group", "empty", var_names$abbreviation, "ados"),
-  na = c("-", ""), show_col_types = FALSE
-) %>%
-  filter(!is.na(group)) %>% select(-ados) %>%
-  mutate(subject_id = row_number(), .before = group)
-
-protein_names <- setdiff(names(raw_data), c("subject_id", "group"))
-stopifnot(all(as.matrix(raw_data[, protein_names]) > 0),
-          !anyNA(raw_data[, protein_names]))
-
-# Preserve Q3a's outer split rather than searching for a favorable partition.
+# Same sampling call, seed, row order and proportion as the team's Q3 scripts.
 set.seed(seed)
-outer_split <- initial_split(raw_data, prop = 0.8)
+outer_split <- initial_split(analysis_data, prop = 0.8)
 train_data <- training(outer_split)
 test_data <- testing(outer_split)
 cat("Subjects:", nrow(train_data), "training;", nrow(test_data), "testing\n")
 
-## 2. Preprocessing -- learn parameters using training subjects only ---------
-
+## 2. Extract model inputs -- no second transformation of clean values -------
+# The team's preprocessing has ALREADY logged, scaled and clipped these values
+# using all subjects. Reusing this file aligns Q4 with Q3 and the class model;
+# it does not make preprocessing fully independent of the evaluation subjects.
 prepare_data <- function(training_data, evaluation_data) {
-  log_train <- log10(as.matrix(training_data[, protein_names]))
-  log_evaluation <- log10(as.matrix(evaluation_data[, protein_names]))
-  centers <- colMeans(log_train)
-  scales <- apply(log_train, 2, sd)
-  keep <- is.finite(scales) & scales > 0
-
-  transform_values <- function(x) {
-    z <- sweep(sweep(x[, keep, drop = FALSE], 2, centers[keep], "-"),
-               2, scales[keep], "/")
-    z[z > 3] <- 3
-    z[z < -3] <- -3
-    z
-  }
-  list(x_train = transform_values(log_train),
-       x_evaluation = transform_values(log_evaluation),
+  list(x_train = as.matrix(training_data[, protein_names]),
+       x_evaluation = as.matrix(evaluation_data[, protein_names]),
        y_train = training_data$group == "ASD",
-       y_evaluation = evaluation_data$group == "ASD")
+       y_evaluation = evaluation_data$group == "ASD",
+       forest_group = factor(training_data$group, levels = c("ASD", "TD")))
 }
 
-## 3. Protein selection -- repeat inside every cross-validation fold ---------
-
+## 3. Protein selection -- repeat inside each training-validation fold -------
 rank_proteins <- function(data) {
   x <- data$x_train
   p_values <- apply(x, 2, function(z) {
@@ -122,7 +94,7 @@ rank_proteins <- function(data) {
   t_order <- t_table %>% arrange(p.adj, protein) %>% pull(protein)
 
   set.seed(seed)
-  forest <- randomForest(x = x, y = factor(data$y_train),
+  forest <- randomForest(x = x, y = data$forest_group,
                          ntree = rf_trees, importance = TRUE)
   rf_order <- names(sort(forest$importance[, "MeanDecreaseGini"], decreasing = TRUE))
 
@@ -255,61 +227,37 @@ write_csv(selection_decisions, file.path(output_dir, "cv-locked-choices.csv"))
 cat("CV-selected approach:", chosen_model, "\n")
 cat("CV-selected simpler approach:", simple_model, "\n")
 
-## 6. Fit the locked choice and reference using all training subjects --------
-
+## 6. Fit Q4 choices using training participants ----------------------------
 final_data <- prepare_data(train_data, test_data)
 final_rankings <- rank_proteins(final_data)
-reference_fit <- fit_configuration(configurations %>% filter(model == "hard10"),
-                                    final_data, final_rankings)
 sou_fit <- fit_configuration(chosen_config, final_data, final_rankings)
 simple_fit <- fit_configuration(simple_config, final_data, final_rankings)
-reference_panel <- reference_fit$proteins
 sou_panel <- sou_fit$proteins
 simple_panel <- simple_fit$proteins
-final_results <- bind_rows(reference_fit$metrics, sou_fit$metrics, simple_fit$metrics) %>%
-  distinct(model, .keep_all = TRUE) %>%
-  select(model, n_proteins, everything())
-print(list(reference_panel = reference_panel, sou_panel = sou_panel))
-print(final_results)
 
-## 7. Reproduce the in-class benchmark without sourcing or editing team files --
-# This copies the baseline procedure into OUR script: global preprocessing and
-# full-data selection, followed by logistic fitting on the same 80% subjects.
-# Its leakage is retained ONLY to benchmark the supplied method as requested.
-all_log <- log10(as.matrix(raw_data[, protein_names]))
-all_z <- scale(all_log)
-all_z[all_z > 3] <- 3
-all_z[all_z < -3] <- -3
-baseline_p <- apply(all_z, 2, function(z) {
-  t.test(z[raw_data$group == "ASD"], z[raw_data$group == "TD"],
-         var.equal = FALSE)$p.value
-})
-baseline_t <- tibble(protein = names(baseline_p), p_value = baseline_p) %>%
-  arrange(p_value) %>%
-  mutate(m = n(), hm = log(m) + 1 / (2 * m) - digamma(1),
-         p.adj = m * hm * p_value / row_number()) %>%
-  slice_min(p.adj, n = 10) %>% pull(protein)
-set.seed(seed)
-baseline_forest <- randomForest(x = all_z, y = factor(raw_data$group),
-                                 ntree = rf_trees, importance = TRUE)
-baseline_rf <- tibble(protein = rownames(baseline_forest$importance),
-                      gini = baseline_forest$importance[, "MeanDecreaseGini"]) %>%
-  slice_max(gini, n = 10) %>% pull(protein)
-inclass_panel <- intersect(baseline_t, baseline_rf)
-baseline_data <- list(x_train = all_z[train_data$subject_id, , drop = FALSE],
-                      x_evaluation = all_z[test_data$subject_id, , drop = FALSE],
-                      y_train = train_data$group == "ASD",
-                      y_evaluation = test_data$group == "ASD")
+## 7. ONE class benchmark -- copy the original procedure into our own file ---
+# Full-data t-tests/RF selection is intentionally retained ONLY for the class
+# benchmark. Q4 choices above were locked using training cross-validation.
+# The supplied clean values are used directly, not reconstructed from raw CSV.
+# This reproduces the team's q3_base.R without sourcing or changing that file.
+all_data <- prepare_data(analysis_data, analysis_data)
+all_rankings <- rank_proteins(all_data)
+inclass_panel <- all_rankings$hard10
 baseline_fit <- fit_configuration(configurations %>% filter(model == "hard10"),
-                                  baseline_data, list(hard10 = inclass_panel))
-inclass_benchmarks <- bind_rows(
-  baseline_fit$metrics %>% mutate(model = "In-class rerun (full-data selection)"),
-  tibble(model = "In-class historical comments (not reproduced)",
-         n_proteins = NA_integer_, sensitivity = 0.875, specificity = 0.800,
-         accuracy = 0.839, roc_auc = 0.908)
+                                  final_data, list(hard10 = inclass_panel))
+final_results <- bind_rows(
+  baseline_fit$metrics %>% mutate(model = "In-class baseline (rerun)"),
+  sou_fit$metrics %>% mutate(model = paste0("Q4 alternative: ", chosen_model)),
+  simple_fit$metrics %>% mutate(model = paste0("Q4 simpler: ", simple_model))
 ) %>% select(model, n_proteins, sensitivity, specificity, accuracy, roc_auc)
-benchmark_comparison <- bind_rows(inclass_benchmarks, final_results)
-print(benchmark_comparison)
+# Historical comments are kept OUT of the current-run comparison table.
+historical_baseline <- tibble(source = "q3_base.R historical comments; not reproduced",
+                              sensitivity = 0.875, specificity = 0.800,
+                              accuracy = 0.839, roc_auc = 0.908)
+benchmark_comparison <- final_results
+print(final_results, width = Inf)
+print(list(inclass_panel = inclass_panel, sou_panel = sou_panel,
+           simple_panel = simple_panel))
 
 ## 8. Save results and verify the analysis -----------------------------------
 # These checks validate the implementation, not the scientific hypothesis.
@@ -318,8 +266,7 @@ stopifnot(nrow(cv_results) == nrow(folds) * nrow(configurations),
                                               test_data$subject_id)) == 0,
           length(simple_panel) <= 3, !"ados" %in% protein_names,
           !"subject_id" %in% protein_names)
-all_fits <- list(reference = reference_fit, primary = sou_fit,
-                 simpler = simple_fit, inclass = baseline_fit)
+all_fits <- list(inclass = baseline_fit, primary = sou_fit, simpler = simple_fit)
 confusion_counts <- imap_dfr(all_fits, function(result, role) {
   truth <- test_data$group == "ASD"
   predicted <- result$probabilities > 0.5
@@ -350,16 +297,21 @@ write_csv(final_panels, file.path(output_dir, "final-panels.csv"))
 write_csv(sou_fit$coefficients, file.path(output_dir, "selected-coefficients.csv"))
 write_csv(simple_fit$coefficients, file.path(output_dir, "simpler-coefficients.csv"))
 write_csv(final_rankings$fuzzy_table, file.path(output_dir, "training-fuzzy-ranks.csv"))
-write_csv(tibble(subject_id = raw_data$subject_id,
-                 partition = if_else(raw_data$subject_id %in% train_data$subject_id,
+write_csv(historical_baseline, file.path(output_dir, "historical-baseline.csv"))
+write_csv(tibble(subject_id = analysis_data$subject_id,
+                 partition = if_else(analysis_data$subject_id %in% train_data$subject_id,
                                      "training", "testing")),
           file.path(output_dir, "subject-partitions.csv"))
 write_csv(tibble(subject_id = test_data$subject_id, group = test_data$group,
                  inclass_probability = baseline_fit$probabilities,
-                 reference_probability = reference_fit$probabilities,
                  sou_probability = sou_fit$probabilities,
                  simpler_probability = simple_fit$probabilities),
           file.path(output_dir, "exploratory-test-predictions.csv"))
+write_csv(tibble(subject_id = test_data$subject_id, group = test_data$group,
+                 probability_ASD = baseline_fit$probabilities,
+                 predicted_group = if_else(baseline_fit$probabilities > 0.5,
+                                           "ASD", "TD")),
+          file.path(output_dir, "baseline-test-predictions.csv"))
 
 cv_plot <- ggplot(cv_summary,
                  aes(x = mean_panel_size, y = mean_accuracy, label = model)) +
@@ -376,22 +328,22 @@ cv_plot <- ggplot(cv_summary,
   theme_minimal(base_size = 11)
 ggsave(file.path(output_dir, "cv-comparison.png"), cv_plot, width = 9, height = 5)
 
-# Save fitted models as well as their outputs. Each preprocessing step can be
-# reproduced from train_data and prepare_data(); do not apply global scaling.
-save(raw_data, train_data, test_data, protein_names, configurations, folds,
+# Save fitted models and inputs. Values are already processed: do not log or
+# standardize them again when inspecting or reproducing these saved predictions.
+save(analysis_data, train_data, test_data, protein_names, configurations, folds,
      seed, accuracy_margin, coefficient_tolerance,
      cv_results, cv_summary, cv_panels, protein_stability, chosen_model,
-     chosen_config, final_rankings, reference_panel, sou_panel,
+     chosen_config, final_rankings, sou_panel,
      simple_model, simple_config, simple_panel, simple_fit,
-     final_results, sou_fit, reference_fit, inclass_panel, baseline_fit,
-     inclass_benchmarks, benchmark_comparison, confusion_counts, final_panels,
+     final_results, sou_fit, inclass_panel, baseline_fit,
+     historical_baseline, benchmark_comparison, confusion_counts, final_panels,
      final_data, cv_plot, file = file.path(output_dir, "sou-q4-results.RData"))
 capture.output(sessionInfo(), file = file.path(output_dir, "session-info.txt"))
-write_csv(tibble(file = raw_path, md5 = unname(tools::md5sum(raw_path))),
+write_csv(tibble(file = clean_path, md5 = unname(tools::md5sum(clean_path))),
           file.path(output_dir, "input-fingerprint.csv"))
 
 ## 9. Generate the explanation and report -----------------------------------
 # This helper is Sou's own new file, not a teammate's script.
 source(file.path(project_root, "scripts", "sou_q4_writeup.R"), local = TRUE)
 cat("\nFinished. Results and report: ", output_dir, "\n", sep = "")
-cat("Inspect cv_summary, benchmark_comparison, simple_panel, and sou_panel.\n")
+cat("Inspect cv_summary, final_results, inclass_panel, simple_panel, and sou_panel.\n")
