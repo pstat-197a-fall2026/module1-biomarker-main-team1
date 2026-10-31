@@ -63,8 +63,6 @@ flowchart TD
 
 ## Findings
 
-Summarize your findings here. I've included some subheaders in a way that seems natural to me; you can structure this section however you like.
-
 ### Impact of preprocessing and outliers
 
 Tasks 1-2
@@ -78,6 +76,8 @@ In part three, we tested the base analysis alongside various modifications and t
 For modification 1, the training-testing split was done at the very start, before the feature selection, whereas in the original it was done at the start of the logistic regression. The sensitivity, accuracy, and roc_auc from the first modification are all lower than the original metrics. However, this does not mean that our model performance worsened after the modification. Instead, the initial analysis likely had data leakage, leading it to overestimate the model performance. By doing the training/testing split before any of the analysis, we do the feature extraction steps with only the training data, making the metrics after modification a better representation of our actual model performance.
 
 For modification 2, the number of proteins selected from both feature selection methods was changed from 10 to 25. From the results, the classification performance showed mixed changes for this modification. Sensitivity decreased, accuracy remained the same, and specificity and roc_auc increased. This suggests that the modified model is a bit less sensitive to ASD but a bit more specific to TD. The roc_auc increase may mean that the model got better at distinguishing between ASD and TD individuals from predicted probabilities, while the classification accuracy is the same. Overall it seems increasing the number of selected proteins could slightly improve some aspects of the model performance.
+
+For modification 3, a fuzzy intersection is used instead of a hard intersection to combine the sets of top predictive proteins across selection methods. The fuzzy intersection gave the lowest accuracy (0.710) and sensitivity (0.688) of all four versions, and its AUROC (0.850) was below the base (0.908). The fuzzy panel contains many more proteins (37) than the hard intersection (5), so it is less accurate on the test set. This might be caused by overfitting. A model with that many predictors picks up noise that does not carry over to new subjects. The extra proteins are ranked highly by both methods, but each one adds little beyond the few strongest ones.
 
 ### Improved classifier
 
