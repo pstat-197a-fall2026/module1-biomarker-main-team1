@@ -1,3 +1,7 @@
+# Run from the project root with:
+# source("scripts/analysis-main.R", chdir = TRUE)
+# The existing Q1-Q3 code expects scripts/ as its working directory.
+
 ### QUESTION 1
 
 library(tidyverse)
@@ -720,3 +724,42 @@ knitr::kable(
     "Modification 2", "Modification 3"
   )
 )
+
+
+# QUESTION 4 -- Sou: aligned alternative and simpler protein panels
+# Keep Q1-Q3 results before running the self-contained Q4 script.
+# Only Sou's own helper is sourced; the Q1-Q3 code above is unchanged.
+q3_results <- comparison_table
+q3_baseline <- base
+q3_model_results <- bind_rows(
+  `In-class baseline (Q3)` = base,
+  `Q3 modification 1: early split` = mod1,
+  `Q3 modification 2: top 25` = mod2,
+  `Q3 modification 3: fuzzy` = mod3,
+  .id = "model"
+) %>%
+  select(model, .metric, .estimate) %>%
+  pivot_wider(names_from = .metric, values_from = .estimate)
+
+source("sou_q.4.R", local = TRUE)
+
+# Fail explicitly if the two reproduced class baselines ever disagree.
+for (.q4_metric in q3_baseline$.metric) {
+  stopifnot(abs(q3_baseline$.estimate[q3_baseline$.metric == .q4_metric] -
+                  baseline_fit$metrics[[.q4_metric]]) < 1e-10)
+}
+rm(.q4_metric)
+
+# One comparison table with ONE baseline, plus the three Q3 modifications and
+# both Q4 alternatives. Use unrounded values; round only when presenting them.
+combined_results <- bind_rows(
+  q3_model_results,
+  final_results %>%
+    filter(model != "In-class baseline (rerun)") %>%
+    select(model, sensitivity, specificity, accuracy, roc_auc)
+)
+print(combined_results, width = Inf)
+write_csv(combined_results,
+          file.path(output_dir, "combined-q3-q4-comparison.csv"))
+cat("\nQ1-Q4 complete. Q3 and Q4 class baselines agree.\n")
+cat("Inspect q3_results, final_results, and combined_results.\n")
