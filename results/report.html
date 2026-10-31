@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.26">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Jiatian Li, Sophia Leng, Arden Chen, Sou Hamura">
+<meta name="dcterms.date" content="2026-10-30">
+
+<title>Biomarkers of ASD</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="report_files/libs/clipboard/clipboard.min.js"></script>
+<script src="report_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="report_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="report_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="report_files/libs/quarto-html/popper.min.js"></script>
+<script src="report_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="report_files/libs/quarto-html/anchor.min.js"></script>
+<link href="report_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="report_files/libs/quarto-html/quarto-syntax-highlighting-587c61ba64f3a5504c4d52d930310e48.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="report_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="report_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="report_files/libs/bootstrap/bootstrap-1fbf936f5d115924c956bdfb76a204f2.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script src="report_files/libs/quarto-diagram/mermaid.min.js"></script>
+<script src="report_files/libs/quarto-diagram/mermaid-init.js"></script>
+<link href="report_files/libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Biomarkers of ASD</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Jiatian Li, Sophia Leng, Arden Chen, Sou Hamura </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Updated</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">October 30, 2026</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="abstract" class="level2">
+<h2 class="anchored" data-anchor-id="abstract">Abstract</h2>
+<p>This report builds on an in-class reproduction of Hewitson et al.’s (2021) serum protein biomarker panel for ASD by assessing how sensitive the results are to specific methodological choices. Firstly, we examine why the protein levels were log-transformed and check whether outliers are concentrated in particular subjects or in one diagnostic group. Next, we modify the selection procedure in three ways: by holding out test data before any selection, choosing more than ten top proteins per method, and using a fuzzy rather than hard intersection across methods. The results of these changes are compared to the in-class analysis. Finally, we search for a simpler or alternative panel that achieves improved classification accuracy. A cross-validation-selected 38-protein lasso model and a one-protein (DERM) model, found in the panel search, each correctly classified 22 of 31 held-out subjects, compared with 24 of 31 for the five-protein in-class baseline. Neither panel matched or improved on baseline accuracy, but the lasso model achieved a higher AUROC (0.925 vs.&nbsp;0.883).</p>
+</section>
+<section id="dataset" class="level2">
+<h2 class="anchored" data-anchor-id="dataset">Dataset</h2>
+<p>The data comes from Hewitson et al.&nbsp;(2021), a serum proteomic study of autism spectrum disorder (ASD). Fasting blood was drawn from 154 boys aged 18 months to 8 years: 76 with ASD and 78 typically developing (TD) controls. The mean age was about 5.6 years in the ASD group and 5.7 in the TD group. ASD diagnosis was based on DSM-5 criteria using the ADOS and ADI-R. TD boys were screened for developmental concerns with the ABAS-II, and boys with a family history of ASD were excluded. The raw data file has 154 rows (one per subject) and 1,317 protein columns. Each protein column has a full name and an abbreviation. The file also has a Group label (ASD or TD) and the ADOS total score (Social Affect + Restricted and Repetitive Behaviors). ADOS is recorded only for ASD subjects and is missing (“-”) for TD subjects.</p>
+<p>For preprocessing, we read the protein names and abbreviations from the two header rows and recodes “-” and blank cells as missing. Empty rows were dropped, and a log transformation was applied to each protein. Each protein is then normalized across subjects, and values beyond ±3 are clipped to ±3 to limit outliers, and the cleaned data is saved as ‘biomarker-clean.RData.’</p>
+</section>
+<section id="summary-of-published-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="summary-of-published-analysis">Summary of published analysis</h2>
+<p>The original paper, Hewitson et al.&nbsp;(2021), investigated whether blood protein levels could be used to distinguish children with autism spectrum disorder (ASD) from typically developing (TD) children. The goal was to create a panel of proteins that could be useful as blood biomarkers for detection of ASD. The study collected serum samples from 154 boys, 76 with ASD and 78 TD, all within 18 months to 8 years of age. With SOMAScan proteomic assay, researchers measured 1,317 proteins, of which 1,125 passed quality control. After data collection, the protein measurements were log-transformed and standardized before analysis.</p>
+<p>Three feature selection methods were applied: random forest, t-tests, and correlation analysis. From these three methods, the researchers selected the top 10 proteins from each, and identified five proteins that were common to all three methods. The five proteins formed the base of the biomarker panel. Additional proteins were evaluated to be added to the panel based on their ability to improve the classifier’s performance, resulting in a bigger panel of 9 proteins. The nine selected proteins were IgD, suPAR, MAPK14, EPHB2, DERM, ROR1, GI24, eIF-4H, and ARSB. Then, a logistic regression classifier was trained using 80% of the observations, with the remaining 20% forming the test set. The researchers evaluated the trained model using the area under the ROC curve (AUC) calculated on the test set. This procedure was repeated 1,000 times to reduce the effect of random variable from the training-testing split. The final nine protein logistic regression classifier model achieved a reported AUC of 0.8599, 83% sensitivity, and 84% specificity, but the study was later retracted due to issues in the statistical analysis.</p>
+<div class="cell" data-layout-align="default">
+<div class="cell-output-display">
+<div>
+<p></p><figure class="figure"><p></p>
+<div>
+<pre class="mermaid mermaid-js">flowchart TD
+    A["154 serum samples&lt;br/&gt;76 ASD / 78 TD"]
+    B["SOMAScan assay&lt;br/&gt;(1,317 proteins)"]
+    C["Quality control and normalization&lt;br/&gt;(1,125 proteins retained)"]
+    D["Random forest&lt;br/&gt;(Top 10)"]
+    E["T-tests&lt;br/&gt;(Top 10)"]
+    F["Correlation with ADOS&lt;br/&gt;(Top 10)"]
+    G["Core panel: 5 proteins"]
+    H["Evaluate additional proteins"]
+    I["Final panel: 9 proteins"]
+    J["Logistic regression classifier"]
+    K["80% training / 20% testing&lt;br/&gt;1,000 repetitions"]
+    L["Reported metrics:&lt;br/&gt;AUC ≈ 0.86&lt;br/&gt;Sensitivity ≈ 83%&lt;br/&gt;Specificity ≈ 84%"]
+
+    A --&gt; B --&gt; C
+    C --&gt; D
+    C --&gt; E
+    C --&gt; F
+    D --&gt; G
+    E --&gt; G
+    F --&gt; G
+    G --&gt; H --&gt; I --&gt; J --&gt; K --&gt; L
+
+</pre>
+</div>
+<p></p></figure><p></p>
+</div>
+</div>
+</div>
+</section>
+<section id="findings" class="level2">
+<h2 class="anchored" data-anchor-id="findings">Findings</h2>
+<section id="impact-of-preprocessing-and-outliers" class="level3">
+<h3 class="anchored" data-anchor-id="impact-of-preprocessing-and-outliers">Impact of preprocessing and outliers</h3>
+<p>From the 10 proteins we sampled, it seems that many of the proteins in the sample are heavily right-skewed. This implies that most of the participants in the study have protein counts for these proteins in the very low end of the study’s range of protein counts.</p>
+<p><img src="no_log.png" class="img-fluid"></p>
+<p>A log transformation helps normalize these protein values so that the data looks more bell-shaped. Normalizing the data allows us to apply statistical and machine learning methods that rely on the data being roughly normal.</p>
+<p>After, we checked to see how many outliers each subject had. Below is a table sorted by how many outliers each subject had.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: right;">subject_id</th>
+<th style="text-align: left;">group</th>
+<th style="text-align: right;">n_measured</th>
+<th style="text-align: right;">n_outliers</th>
+<th style="text-align: right;">prop_outliers</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">154</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">157</td>
+<td style="text-align: right;">0.1192103</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">108</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">127</td>
+<td style="text-align: right;">0.0964313</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">9</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">126</td>
+<td style="text-align: right;">0.0956720</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">121</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">122</td>
+<td style="text-align: right;">0.0926348</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">52</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">121</td>
+<td style="text-align: right;">0.0918755</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">77</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">114</td>
+<td style="text-align: right;">0.0865604</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">147</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">77</td>
+<td style="text-align: right;">0.0584662</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">24</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">48</td>
+<td style="text-align: right;">0.0364465</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">100</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">0.0356872</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">150</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">47</td>
+<td style="text-align: right;">0.0356872</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">131</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">45</td>
+<td style="text-align: right;">0.0341686</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">73</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">37</td>
+<td style="text-align: right;">0.0280942</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">98</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">33</td>
+<td style="text-align: right;">0.0250569</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">96</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">0.0212604</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">148</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">28</td>
+<td style="text-align: right;">0.0212604</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">30</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">25</td>
+<td style="text-align: right;">0.0189825</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">64</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">24</td>
+<td style="text-align: right;">0.0182232</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">134</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">23</td>
+<td style="text-align: right;">0.0174639</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">37</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0.0159453</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">70</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0.0159453</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">105</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0.0159453</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">31</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.0151860</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">107</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.0151860</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">40</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.0144267</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">61</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.0144267</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">65</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.0144267</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">126</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">19</td>
+<td style="text-align: right;">0.0144267</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">20</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">0.0136674</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">4</td>
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">0.0129081</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">117</td>
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">1317</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">0.0129081</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>As for outliers, there are six total subjects that have 100 or more outlier values out of the 1,317 proteins measured, with the counts of outlier values per subject falling rapidly below 50 after those six. Subject 154 had the most with 157 outliers, but was typically developing. This subject was also the only one who had outlier values in over 10% of the proteins measured.</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="caption-top table table-sm table-striped small">
+<colgroup>
+<col style="width: 5%">
+<col style="width: 9%">
+<col style="width: 12%">
+<col style="width: 14%">
+<col style="width: 11%">
+<col style="width: 23%">
+<col style="width: 23%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">group</th>
+<th style="text-align: right;">n_subjects</th>
+<th style="text-align: right;">mean_outliers</th>
+<th style="text-align: right;">median_outliers</th>
+<th style="text-align: right;">max_outliers</th>
+<th style="text-align: right;">pct_subjects_with_outliers</th>
+<th style="text-align: right;">pct_measurements_outlying</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">ASD</td>
+<td style="text-align: right;">76</td>
+<td style="text-align: right;">13.25000</td>
+<td style="text-align: right;">8.5</td>
+<td style="text-align: right;">126</td>
+<td style="text-align: right;">98.68421</td>
+<td style="text-align: right;">1.006074</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">TD</td>
+<td style="text-align: right;">78</td>
+<td style="text-align: right;">17.58974</td>
+<td style="text-align: right;">8.5</td>
+<td style="text-align: right;">157</td>
+<td style="text-align: right;">98.71795</td>
+<td style="text-align: right;">1.335592</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Aggregating by groups, it appears that there’s actually more evidence that there’s less outliers in the ASD group. This goes against intuition as we would not expect outlier values to be associated with identifying typically developing children. This might be due to small sample size or the nature of outlier values skewing the ASD group’s mean count of outliers, while the median is the same. The percentage of subjects with outlier values is the same and the percentage of measurements with outlier values is not significantly different. We can visualize the lack of relation with the plot below:</p>
+<p><img src="outliers_count.png" class="img-fluid"></p>
+<p>Each bar is a subject and the x-axis is the number of outlying protein measurements for that subject, sorted by most to least outliers. There does not seem to be a clean way to divide the ASD and TD group purely by how many outlier values they have.</p>
+</section>
+<section id="methodological-variations" class="level3">
+<h3 class="anchored" data-anchor-id="methodological-variations">Methodological variations</h3>
+<p>In this section, we tested the base analysis alongside various modifications and then compared the models’ performances. Here is a table that summarizes the evaluation metrics.</p>
+<p><img src="q3_modification_summary.png" class="img-fluid"></p>
+<p>For modification 1, the training-testing split was done at the very start, before the feature selection, whereas in the original it was done at the start of the logistic regression. The sensitivity, accuracy, and ROC AUC from the first modification are all lower than the original metrics. However, this does not mean that our model performance worsened after the modification. Instead, the initial analysis likely had data leakage, leading it to overestimate the model performance. By doing the training/testing split before any of the analysis, we do the feature extraction steps with only the training data, making the metrics after modification a better representation of our actual model performance.</p>
+<p>For modification 2, the number of proteins selected from both feature selection methods was changed from 10 to 25. From the results, the classification performance showed mixed changes for this modification. Sensitivity decreased, accuracy remained the same, and specificity and ROC AUC increased. This suggests that the modified model is a bit less sensitive to ASD but a bit more specific to TD. The ROC AUC increase may mean that the model got better at distinguishing between ASD and TD individuals from predicted probabilities, while the classification accuracy is the same. Overall it seems increasing the number of selected proteins could slightly improve some aspects of the model performance.</p>
+<p>For modification 3, a fuzzy intersection is used instead of a hard intersection to combine the sets of top predictive proteins across selection methods. The fuzzy intersection gave the lowest accuracy (0.710) and sensitivity (0.688) of all four versions, and its AUROC (0.850) was below the base (0.908). The fuzzy panel contains many more proteins (37) than the hard intersection (5), so it is less accurate on the test set. This might be caused by overfitting. A model with that many predictors picks up noise that does not carry over to new subjects. The extra proteins are ranked highly by both methods, but each one adds little beyond the few strongest ones.</p>
+</section>
+<section id="improved-classifier" class="level3">
+<h3 class="anchored" data-anchor-id="improved-classifier">Improved classifier</h3>
+<p>For Question 4, we searched for an alternative panel with improved accuracy and also investigated whether a smaller panel could retain comparable accuracy. To align the benchmark with Question 3, we used the same supplied cleaned data, random-forest ASD/TD labels, random seed (101422), 80/20 training/test split, and classification threshold of 0.5. The in-class benchmark selected the intersection of the top ten proteins from t-tests and random forest using the full dataset, then fitted logistic regression on the training partition. Rerunning this benchmark alongside Question 3 gave identical baseline metrics in both parts.</p>
+<p>We compared 24 candidate configurations using three repeats of stratified five-fold cross-validation within the 123 training subjects. Candidates included logistic regression with hard-intersection, fuzzy-ranking, t-test, or random-forest panels, and lasso logistic regression using either all proteins or the top 25 fuzzy-ranked proteins. Lasso penalizes large coefficients and can set some coefficients to zero, allowing protein selection during fitting. Protein selection was repeated within each training fold. We chose the alternative with the highest mean validation accuracy; for the simpler option, we chose the smallest one- to three-protein panel within two percentage points of the best validation accuracy among those small panels. These choices were fixed before the final evaluation in this run.</p>
+<p>Cross-validation selected the all-protein lasso configuration with a penalty equal to 0.2 times the largest penalty in its fitted path (<code>lasso_all_0.2</code>), with mean validation accuracy of 74.0%. The simpler configuration used the top fuzzy-ranked protein (<code>fuzzy1</code>), with mean validation accuracy of 67.5%. Refitting on all training subjects produced a 38-protein lasso panel and a one-protein logistic regression panel containing DERM. The rerun class panel contained DERM, RELT, MRC2, IgD, and Cadherin-5.</p>
+<p>The following results use the same 31 test subjects (16 ASD and 15 TD). Sensitivity is the proportion of ASD subjects correctly classified, and specificity is the proportion of TD subjects correctly classified.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Approach</th>
+<th style="text-align: right;">Number of proteins</th>
+<th style="text-align: right;">Sensitivity</th>
+<th style="text-align: right;">Specificity</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">AUROC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">In-class baseline (rerun)</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">81.2%</td>
+<td style="text-align: right;">73.3%</td>
+<td style="text-align: right;">77.4%</td>
+<td style="text-align: right;">0.883</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Alternative: lasso</td>
+<td style="text-align: right;">38</td>
+<td style="text-align: right;">50.0%</td>
+<td style="text-align: right;">93.3%</td>
+<td style="text-align: right;">71.0%</td>
+<td style="text-align: right;">0.925</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Simpler: DERM only</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">50.0%</td>
+<td style="text-align: right;">93.3%</td>
+<td style="text-align: right;">71.0%</td>
+<td style="text-align: right;">0.792</td>
+</tr>
+</tbody>
+</table>
+<p>Neither Question 4 panel improved classification accuracy: both correctly classified 22 of 31 subjects, compared with 24 of 31 for the baseline. Both detected only 8 of 16 ASD subjects, compared with 13 of 16 for the baseline, while correctly classifying 14 of 15 TD subjects instead of 11. The alternative’s higher AUROC indicates better ranking of ASD versus TD subjects by predicted probability, but does not imply higher accuracy at the fixed threshold. The simpler panel reduced the number of proteins from five to one, but its accuracy was 6.5 percentage points lower, outside our descriptive two-percentage-point comparability margin. Thus, this search did not demonstrate either requested improvement on this test split; the lasso panel was the validation-selected alternative, rather than a model that surpassed the class benchmark.</p>
+<p>These comparisons are exploratory. The cleaned data were log-transformed, standardized, and clipped using all subjects, and the class benchmark retained full-data feature selection. Although Question 4 selected and tuned proteins within training folds, reusing globally preprocessed data leaves information leakage. The test set had also been examined in earlier work, so it is not a fresh independent validation set. With only 31 test subjects, one changed classification shifts accuracy by about 3.2 percentage points, and the comparability margin is not evidence of statistical equivalence. The analysis can be reproduced through <code>scripts/analysis-main.R</code>; selected protein lists and coefficients are regenerated under <code>results/sou-q4-final/</code>.</p>
+</section>
+<section id="references" class="level3">
+<h3 class="anchored" data-anchor-id="references">References</h3>
+<p>Hewitson, Laura, Jeremy A Mathews, Morgan Devlin, Claire Schutte, Jeon Lee, and Dwight C German. 2021. “Blood Biomarker Discovery for Autism Spectrum Disorder: A Proteomic Analysis.” PLoS One 16 (2): e0246581.</p>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
